@@ -1,4 +1,4 @@
-package com.chriszou.rxjavademo;
+package com.chriszou.rxjavademo.data;
 
 import com.google.gson.annotations.SerializedName;
 

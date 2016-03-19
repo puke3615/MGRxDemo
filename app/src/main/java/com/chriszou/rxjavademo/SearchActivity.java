@@ -2,76 +2,80 @@ package com.chriszou.rxjavademo;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextUtils;
-import android.text.TextWatcher;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 
-import com.jakewharton.rxbinding.widget.RxTextView;
+import com.chriszou.rxjavademo.data.User;
+import com.chriszou.rxjavademo.utils.Networker;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.jakewharton.rxbinding.view.RxView;
 
-import java.util.concurrent.TimeUnit;
+import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.List;
+
+import rx.Observable;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by xiaochuang on 3/18/16.
  */
 public class SearchActivity extends Activity {
 
+    private LinearLayout usersLayout;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.search_activity);
-
         EditText searchBox = (EditText) findViewById(R.id.search_box);
-        searchBox.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                onQueryStringChanged(s.toString());
-            }
-        });
-
+        usersLayout = (LinearLayout) findViewById(R.id.usersLayout);
 
         //RxJava version
-        RxTextView.afterTextChangeEvents(searchBox)
-                .map(textChangedEvent -> textChangedEvent.editable().toString())
-                .filter(s -> s.length() > 3)
-                .distinctUntilChanged()
-                .debounce(500, TimeUnit.MILLISECONDS)
-                .subscribe(s -> {
+//        RxTextView.afterTextChangeEvents(searchBox)
+//                .map(textChangedEvent -> textChangedEvent.editable().toString())
+//                .filter(s -> s.length() > 3)
+//                .distinctUntilChanged()
+//                .debounce(500, TimeUnit.MILLISECONDS)
+//                .map(query -> searchUsers(query))
+//                .subscribe(users -> updateList(users));
 
-                });
+
+        Observable<String> requestStream =
+                RxView.clicks(findViewById(R.id.refresh)).startWith((Void)null).map(ignored -> {
+            int randomOffset = (int) Math.floor(Math.random() * 500);
+            return "https://api.github.com/users?since=" + randomOffset;
+        }).subscribeOn(AndroidSchedulers.mainThread());
+
+        Observable<List<User>> responseStream = requestStream
+                .observeOn(Schedulers.io())
+                .map(url -> {
+                    try {
+                        return new Networker().get(url);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        return "[]";
+                    }
+                })
+                .map(response -> getUsers(response));
+
+        responseStream.observeOn(AndroidSchedulers.mainThread())
+                      .subscribe(users -> updateList(users));
     }
 
-    private String lastQueryString;
-    private long lastQueryTimestamp;
-    private void onQueryStringChanged(String newQueryString) {
-        if (TextUtils.isEmpty(newQueryString)) {
-            return;
-        }
-
-        if (newQueryString.equals(lastQueryString)) {
-            return;
-        }
-
-        long currentTimeMillis = System.currentTimeMillis();
-        if (currentTimeMillis - lastQueryTimestamp < 500) {
-            return;
-        }
-
-        lastQueryString = newQueryString;
-        lastQueryTimestamp = currentTimeMillis;
-
-        performSearch(newQueryString);
+    private List<User> getUsers(String response) {
+        Type listType = new TypeToken<List<User>>(){}.getType();
+        return new Gson().fromJson(response, listType);
     }
 
-    private void performSearch(String string) {
-        //Search for string
+    private void updateList(List<User> users) {
+        usersLayout.removeAllViews();
+        for (int i=0; i<5 && i<users.size(); i++) {
+            usersLayout.addView(new UserView(this, users.get(i)));
+        }
     }
+
+
 }

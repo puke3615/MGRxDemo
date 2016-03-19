@@ -5,6 +5,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.util.Pair;
 import android.support.v7.app.AppCompatActivity;
 
+import com.chriszou.rxjavademo.data.User;
 import com.google.gson.Gson;
 
 import java.io.IOException;
