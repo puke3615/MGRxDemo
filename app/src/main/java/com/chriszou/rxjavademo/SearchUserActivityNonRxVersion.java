@@ -26,7 +26,7 @@ public class SearchUserActivityNonRxVersion extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.search_activity);
+        setContentView(R.layout.discovery_activity);
         EditText searchBox = (EditText) findViewById(R.id.search_box);
 
 

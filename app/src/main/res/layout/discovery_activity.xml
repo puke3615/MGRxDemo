@@ -5,7 +5,6 @@
               android:orientation="vertical">
 
     <LinearLayout
-        android:visibility="gone"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
@@ -22,16 +21,18 @@
             android:text="@string/search"/>
     </LinearLayout>
 
+
     <Button
         android:id="@+id/refresh"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Refresh"/>
+        android:text="换一批"/>
 
     <LinearLayout
         android:id="@+id/usersLayout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical">
     </LinearLayout>
+
 </LinearLayout>
