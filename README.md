@@ -1,2 +1,2 @@
 # rxjava-demo
-An RxJava demo project
+A RxJava demo project
