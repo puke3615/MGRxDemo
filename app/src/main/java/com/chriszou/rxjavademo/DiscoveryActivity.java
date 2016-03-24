@@ -29,8 +29,11 @@ import java.util.concurrent.TimeUnit;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import rx.Observable;
+import rx.Observable.Operator;
+import rx.Subscriber;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 
 /**
@@ -107,7 +110,6 @@ public class DiscoveryActivity extends AppCompatActivity {
 //                .subscribe(users -> updateUserList(users));
 
 
-
 //        EditText searchBox = (EditText) findViewById(R.id.search_box);
 //        RxTextView.afterTextChangeEvents(searchBox)
 //                  .map(textChangedEvent -> textChangedEvent.editable().toString())
@@ -130,15 +132,15 @@ public class DiscoveryActivity extends AppCompatActivity {
 //                .map(name -> searchUsers(name))
 //                .subscribe(users -> updateUserList(users));
         Observable<String> textChangedStream = RxTextView.afterTextChangeEvents(searchBox)
-                                                         .map(textChangedEvent -> textChangedEvent.editable().toString());
+                .map(textChangedEvent -> textChangedEvent.editable().toString());
         Observable<String> searchTextEmptyStream = textChangedStream.filter(s -> s.length() == 0)
-                                                                    .doOnNext(s -> {
-                                                                        refrenshButton.setVisibility(View.VISIBLE);
-                                                                        updateUserList(null);
-                                                                    });
+                .doOnNext(s -> {
+                    refrenshButton.setVisibility(View.VISIBLE);
+                    updateUserList(null);
+                });
         Observable<Void> refreshStream = RxView.clicks(refrenshButton)
-                                                .startWith((Void)null)
-                                                .mergeWith(searchTextEmptyStream.map(s -> (Void)null));
+                .startWith((Void) null)
+                .mergeWith(searchTextEmptyStream.map(s -> (Void) null));
 
         Observable<List<User>> recommandedUserStream = refreshStream
                 .observeOn(Schedulers.io())
@@ -148,30 +150,51 @@ public class DiscoveryActivity extends AppCompatActivity {
                 .map(ignored -> searchBox.getText().toString());
 
         Observable<String> searchOnTextChangedStream = textChangedStream.filter(s -> s.length() >= 3).debounce(500, TimeUnit.MILLISECONDS).distinctUntilChanged()
-                                                                        .doOnNext(s -> Log.d("zyzy", "perform search on: "+s));
+                .doOnNext(s -> Log.d("zyzy", "perform search on: " + s));
 
         Observable<List<User>> searchResultUserStream = Observable.merge(searchOnTextChangedStream, searchButtonClickStream.filter(s -> s.length() > 0))
                 .observeOn(AndroidSchedulers.mainThread())
-                .doOnNext(s -> {
+                .map(s -> {
                     refrenshButton.setVisibility(View.GONE);
                     updateUserList(null);
+                    if (s.equals("error")) throw new RuntimeException("fail on purpose");
+                    return s;
                 })
                 .observeOn(Schedulers.io())
                 .map(s -> searchUsers(s));
         searchResultUserStream.mergeWith(recommandedUserStream)
+                .lift(new OperatorSuppressError<>(Throwable::printStackTrace))
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(users -> updateUserList(users), e -> showError(e));
+                .subscribe(users -> updateUserList((List<User>) users), new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        throwable.printStackTrace();
+                    }
+                });
     }
 
     private void showError(Throwable e) {
 //        e.printStackTrace();
         Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+
+//        OnClickListener clickListener = new OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                // View was clicked
+//            }
+//        };
+
+//        OnClickListener clickListener = v -> {
+//             View was clicked
+//        };
+
+//        OnClickListener clickListener = v -> doWhateverYouWant(v);
     }
 
     private List<User> searchUsers(String name) {
-        Log.d("zyzy", "search users: "+name);
+        Log.d("zyzy", "search users: " + name);
         try {
-            String response = new Networker().get("https://api.github.com/search/users?q="+name);
+            String response = new Networker().get("https://api.github.com/search/users?q=" + name);
             SearchUserResult userResult = new Gson().fromJson(response, SearchUserResult.class);
             return userResult.users;
         } catch (IOException e) {
@@ -182,14 +205,15 @@ public class DiscoveryActivity extends AppCompatActivity {
 
     private List<User> getUsersFromJsonArray(String response) {
 //        response = readStringFromRaw();
-        Type listType = new TypeToken<List<User>>(){}.getType();
+        Type listType = new TypeToken<List<User>>() {
+        }.getType();
         return new Gson().fromJson(response, listType);
     }
 
     private void updateUserList(List<User> users) {
         usersLayout.removeAllViews();
-        if (users==null) return;
-        for (int i=0; i<users.size(); i++) {
+        if (users == null) return;
+        for (int i = 0; i < users.size(); i++) {
             usersLayout.addView(new UserView(this, users.get(i)));
         }
     }
@@ -215,6 +239,7 @@ public class DiscoveryActivity extends AppCompatActivity {
 //        List<User> users = getUsersFromJsonArray(null);
 //        Collections.shuffle(users);
 //        return users;
+
     }
 
     private String readStringFromRaw() {
@@ -235,9 +260,40 @@ public class DiscoveryActivity extends AppCompatActivity {
         return "[]";
     }
 
+
+    public static final class OperatorSuppressError<T> implements Operator<T, T> {
+        final Action1<Throwable> onError;
+
+        public OperatorSuppressError(Action1<Throwable> onError) {
+            this.onError = onError;
+        }
+
+        @Override
+        public Subscriber<? super T> call(final Subscriber<? super T> t1) {
+            return new Subscriber<T>(t1) {
+
+                @Override
+                public void onNext(T t) {
+                    t1.onNext(t);
+                }
+
+                @Override
+                public void onError(Throwable e) {
+                    onError.call(e);
+                }
+
+                @Override
+                public void onCompleted() {
+                    t1.onCompleted();
+                }
+
+            };
+        }
+    }
+
     @Override
     protected void onDestroy() {
-        if (recommandUsersSubscription!=null) recommandUsersSubscription.unsubscribe();
+        if (recommandUsersSubscription != null) recommandUsersSubscription.unsubscribe();
         super.onDestroy();
     }
 }
