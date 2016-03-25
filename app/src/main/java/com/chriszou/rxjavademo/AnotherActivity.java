@@ -38,35 +38,6 @@ public class AnotherActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.discovery_activity);
 
-//        Observable<List<User>> startupUserStream = Observable.just("on create")
-//                                                            .observeOn(Schedulers.io())
-//                                                            .map(s -> getRecommendedUsers());
-//
-//        Subscription subscribe = startupUserStream
-//                                        .observeOn(AndroidSchedulers.mainThread())
-//                                        .subscribe(users -> updateUserList(users), e -> showError(e));
-//
-//        Observable<Void> clickStream = RxView.clicks(findViewById(R.id.refresh));
-//        Observable<List<User>> clickUserStream = clickStream.observeOn(Schedulers.io())
-//                                                        .map(ignored -> getRecommendedUsers());
-//        Subscription subscribe1 = clickUserStream.observeOn(AndroidSchedulers.mainThread())
-//                                                .subscribe(users -> updateUserList(users),
-//                                                            e -> showError(e));
-//
-//        Observable<List<User>> startupUserStream = Observable.just("on create")
-//                .observeOn(Schedulers.io())
-//                .map(s -> getRecommendedUsers());
-//
-//        Subscription subscribe = startupUserStream
-//                .observeOn(AndroidSchedulers.mainThread())
-//                .subscribe(users -> updateUserList(users), e -> showError(e));
-//
-//        Observable<Void> clickStream = RxView.clicks(findViewById(R.id.refresh));
-//        Observable<List<User>> clickUserStream = clickStream.observeOn(Schedulers.io())
-//                .map(ignored -> getRecommendedUsers());
-//        Subscription subscribe1 = clickUserStream.observeOn(AndroidSchedulers.mainThread())
-//                .subscribe(users -> updateUserList(users),
-//                        e -> showError(e));
         EditText searchBox = (EditText) findViewById(R.id.search_box);
 
         Observable<String> clickStream = RxView.clicks(findViewById(R.id.refresh))
@@ -81,31 +52,10 @@ public class AnotherActivity extends AppCompatActivity {
         Subscription recommendedUserSub = usersStream.observeOn(AndroidSchedulers.mainThread())
                                                     .subscribe(users -> updateUserList(users),
                                                                 e -> showError(e));
-//
-//        EditText searchBox = (EditText) findViewById(R.id.search_box);
-//        Observable<String> textChangeStream = RxTextView.afterTextChangeEvents(searchBox)
-//                .map(textChangedEvent -> textChangedEvent.editable().toString());
-//        Observable<List<User>> searchUserResultStream = textChangeStream
-//                                                            .observeOn(Schedulers.io())
-//                                                            .map(s -> searchUsers(s));
-//        Subscription searchUserSub = searchUserResultStream.observeOn(AndroidSchedulers.mainThread())
-//                .subscribe(users -> updateUserList(users),
-//                            e -> showError(e));
-//
-//        Observable<String> searchButtonClickStream = RxView.clicks(findViewById(R.id.search_button))
-//                                                    .map(ignored -> searchBox.getText().toString());
-//        searchButtonClickStream.observeOn(Schedulers.io())
-//                                .map(s -> searchUsers(s))
-//                                .observeOn(AndroidSchedulers.mainThread())
-//                                .subscribe(users -> updateUserList(users),
-//                                            e -> showError(e));
-
 
         Observable<String> searchButtonClickStream = RxView.clicks(findViewById(R.id.search_button))
                 .map(ignored -> searchBox.getText().toString())
                 .filter(s -> s.length()>0);
-//        Observable<String> textChangeStream = RxTextView.afterTextChangeEvents(searchBox)
-//                .map(textChangedEvent -> textChangedEvent.editable().toString());
 
         Observable<String> searchOnTextChangeStream = textChangeStream.filter(s -> s.length() >= 3)
                                                                     .debounce(500, TimeUnit.MILLISECONDS)
@@ -119,12 +69,6 @@ public class AnotherActivity extends AppCompatActivity {
         Subscription searchUserSub = searchUserResultStream.observeOn(AndroidSchedulers.mainThread())
                                                         .subscribe(users -> updateUserList(users),
                                                                     e -> showError(e));
-//
-//        searchButtonClickStream.observeOn(Schedulers.io())
-//                .map(s -> searchUsers(s))
-//                .observeOn(AndroidSchedulers.mainThread())
-//                .subscribe(users -> updateUserList(users),
-//                        e -> showError(e));
     }
 
     private void showError(Throwable message) {
