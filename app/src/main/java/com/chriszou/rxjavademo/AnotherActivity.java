@@ -38,13 +38,20 @@ public class AnotherActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.discovery_activity);
 
+        //搜索框
         EditText searchBox = (EditText) findViewById(R.id.search_box);
 
+        //点击搜索的事件流
         Observable<String> clickStream = RxView.clicks(findViewById(R.id.refresh))
                                                 .map(ignored -> "Refresh button clicked");
+        //启动流
         Observable<String> startupStream = Observable.just("on create");
+
+        //搜索框的内容改变的事件流
         Observable<String> textChangeStream = RxTextView.afterTextChangeEvents(searchBox)
                 .map(textChangedEvent -> textChangedEvent.editable().toString());
+
+
         Observable<String> recommendedUserRequestStream = startupStream.mergeWith(clickStream)
                                     .mergeWith(textChangeStream.filter(s -> s.length()==0));
         Observable<List<User>> usersStream = recommendedUserRequestStream.observeOn(Schedulers.io())
